@@ -32,7 +32,7 @@ mod day01 {
     fn part1() {
         use crate::*;
         let root = env::current_dir().unwrap().display().to_string();
-        let input = read_input(format!("{}{}", root, "/input/sample01.txt").as_str());
+        let input = read_input(format!("{}{}", root, "/../input/sample01.txt").as_str());
         assert_eq!(solve_part1(&input), 24000);
     }
 
@@ -40,7 +40,7 @@ mod day01 {
     fn part2() {
         use crate::*;
         let root = env::current_dir().unwrap().display().to_string();
-        let input = read_input(format!("{}{}", root, "/input/sample01.txt").as_str());
+        let input = read_input(format!("{}{}", root, "/../input/sample01.txt").as_str());
         assert_eq!(solve_part2(&input), 45000);
     }    
 }
