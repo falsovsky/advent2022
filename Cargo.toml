@@ -9,10 +9,21 @@ keywords = ["advent", "code", "2022"]
 categories = ["challenge"]
 edition = "2021"
 
+[lib]
+name = "day01"
+path = "src/day01/lib.rs"
+
 [[bin]]
 name = "day01"
-path = "src/day01.rs"
+path = "src/day01/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[dev-dependencies]
+criterion = "0.4.0"
+
+[[bench]]
+name = "day01"
+harness = false
