@@ -34,16 +34,14 @@ pub fn read_input(filename: &str) -> Vec<u32> {
 
 #[inline]
 pub fn solve_part1(program: &[u32]) -> u32 {
-    program[program.len() - 1]
+    let mut result: u32 = 0;
+    if let Some(value) = program.last() {
+        result = *value;
+    }
+    result
 }
 
 #[inline]
 pub fn solve_part2(program: &[u32]) -> u32 {
-    let mut top3: u32 = 0;
-    for value in program.iter().rev().take(3) {
-        if let Some(sum) = top3.checked_add(*value) {
-            top3 = sum;
-        }
-    }
-    top3
+    program.iter().rev().take(3).sum()
 }
