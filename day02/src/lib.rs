@@ -2,88 +2,57 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Move {
-    Rock,
-    Paper,
-    Scissors,
+    Rock = 1,
+    Paper = 2,
+    Scissors = 3,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    Lose = 0,
+    Draw = 3,
+    Win = 6,
 }
 
 pub struct Play {
     player1: Move,
     player2: Move,
+    status: Status,
 }
 
 impl Play {
     pub fn get_score(&self) -> u32 {
-        let mut result: u32 = match self.player2 {
-            Move::Rock => 1,
-            Move::Paper => 2,
-            Move::Scissors => 3,
-        };
-
-        // Tie
-        if self.player2 == self.player1 {
-            result += 3;
+        // Win
+        if (self.player2 == Move::Rock && self.player1 == Move::Scissors) || // Rock beats Scissors
+            (self.player2 == Move::Paper && self.player1 == Move::Rock) || // Paper beats Rock
+            (self.player2 == Move::Scissors && self.player1 == Move::Paper) // Scissors beats Paper
+        {
+            self.player2 as u32 + Status::Win as u32
+        } else if self.player2 == self.player1 {  
+            self.player2 as u32 + Status::Draw as u32 // Draw
+        } else { 
+            self.player2 as u32 + Status::Lose as u32 // Lose
         }
-
-        // Rock beats Scissors
-        if self.player2 == Move::Rock && self.player1 == Move::Scissors {
-            result += 6;
-        }
-
-        // Paper beats Rock
-        if self.player2 == Move::Paper && self.player1 == Move::Rock {
-            result += 6;
-        }
-
-        // Scissors beats Paper
-        if self.player2 == Move::Scissors && self.player1 == Move::Paper {
-            result += 6;
-        }
-
-        result
     }
 
     pub fn get_real_score(&self) -> u32 {
-        let mut result: u32 = 0;
-
-        // Lose
-        if self.player2 == Move::Rock {
-            result += match self.player1 {
-                // Paper beats Rock
-                Move::Paper => 1,
-                // Rock beats Scissors
-                Move::Rock => 3,
-                // Scissors beats Paper
-                Move::Scissors => 2,
+        if self.status == Status::Lose { // Lose
+            match self.player1 {
+                Move::Paper => Move::Rock as u32,     // Paper beats Rock
+                Move::Rock => Move::Scissors as u32,  // Rock beats Scissors
+                Move::Scissors => Move::Paper as u32, // Scissors beats Paper
             }
+        } else if self.status == Status::Draw { // Draw
+            self.player1 as u32 + self.status as u32
+        } else { // Win
+            (match self.player1 {
+                Move::Rock => Move::Paper as u32,     // Paper beats Rock
+                Move::Paper => Move::Scissors as u32, // Scissors beats Paper
+                Move::Scissors => Move::Rock as u32,  // Rock beats Scissors
+            }) + self.status as u32
         }
-
-        // Draw
-        if self.player2 == Move::Paper {
-            result += match self.player1 {
-                Move::Rock => 1,
-                Move::Paper => 2,
-                Move::Scissors => 3,
-            };
-            result += 3;
-        }
-
-        // Win
-        if self.player2 == Move::Scissors {
-            result += match self.player1 {
-                // Paper beats Rock
-                Move::Rock => 2,
-                // Scissors beats Paper
-                Move::Paper => 3,
-                // Rock beats Scissors
-                Move::Scissors => 1,
-            };
-            result += 6;
-        }
-
-        result
     }
 }
 
@@ -110,14 +79,14 @@ pub fn read_input(filename: &str) -> Vec<Play> {
             _ => panic!("Invalid move"),
         };
 
-        let player2: Move = match *split.get(1).unwrap() {
-            "X" => Move::Rock,
-            "Y" => Move::Paper,
-            "Z" => Move::Scissors,
+        let player2: (Move, Status) = match *split.last().unwrap() {
+            "X" => (Move::Rock, Status::Lose),
+            "Y" => (Move::Paper, Status:: Draw),
+            "Z" => (Move::Scissors, Status:: Win),
             _ => panic!("Invalid move"),
         };
 
-        input.push(Play { player1, player2 });
+        input.push(Play { player1, player2: player2.0, status: player2.1 });
     }
     input
 }
