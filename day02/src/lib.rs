@@ -1,12 +1,32 @@
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::cmp::Ordering;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Move {
     Rock = 1,
     Paper = 2,
     Scissors = 3,
+}
+
+impl Ord for Move {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self == other { return Ordering::Equal }
+        match (self, other) {
+            (Move::Rock, Move::Paper) => Ordering::Less,
+            (Move::Paper, Move::Scissors) => Ordering::Less,
+            (Move::Scissors, Move::Rock) => Ordering::Less,
+            (_, _) => Ordering::Greater
+        }
+    }
+}
+
+impl PartialOrd for Move {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -24,35 +44,31 @@ pub struct Play {
 
 impl Play {
     pub fn get_score(&self) -> u32 {
-        // Win
-        if (self.player2 == Move::Rock && self.player1 == Move::Scissors) || // Rock beats Scissors
-            (self.player2 == Move::Paper && self.player1 == Move::Rock) || // Paper beats Rock
-            (self.player2 == Move::Scissors && self.player1 == Move::Paper) // Scissors beats Paper
-        {
-            self.player2 as u32 + Status::Win as u32
-        } else if self.player2 == self.player1 {  
-            self.player2 as u32 + Status::Draw as u32 // Draw
-        } else { 
-            self.player2 as u32 + Status::Lose as u32 // Lose
+        match self.player2.cmp(&self.player1) {
+            Ordering::Equal => self.player2 as u32 + Status::Draw as u32, // Draw
+            Ordering::Greater => self.player2 as u32 + Status::Win as u32, // Win
+            Ordering::Less => self.player2 as u32 + Status::Lose as u32 // Lose
         }
     }
 
     pub fn get_real_score(&self) -> u32 {
-        if self.status == Status::Lose { // Lose
-            match self.player1 {
-                Move::Paper => Move::Rock as u32,     // Paper beats Rock
-                Move::Rock => Move::Scissors as u32,  // Rock beats Scissors
-                Move::Scissors => Move::Paper as u32, // Scissors beats Paper
+        (match self.status {
+            Status::Draw => self.player1,
+            Status::Lose => {
+                match self.player1 {
+                    Move::Paper => Move::Rock,
+                    Move::Rock => Move::Scissors,
+                    Move::Scissors => Move::Paper
+                }
+            },
+            Status::Win => {
+                match self.player1 {
+                    Move::Rock => Move::Paper,
+                    Move::Paper => Move::Scissors,
+                    Move::Scissors => Move::Rock
+                }
             }
-        } else if self.status == Status::Draw { // Draw
-            self.player1 as u32 + self.status as u32
-        } else { // Win
-            (match self.player1 {
-                Move::Rock => Move::Paper as u32,     // Paper beats Rock
-                Move::Paper => Move::Scissors as u32, // Scissors beats Paper
-                Move::Scissors => Move::Rock as u32,  // Rock beats Scissors
-            }) + self.status as u32
-        }
+        }) as u32 + self.status as u32
     }
 }
 
@@ -69,34 +85,30 @@ pub fn read_input(filename: &str) -> Vec<Play> {
             Ok(value) => value,
             Err(error) => panic!("Could not read anything - {}", error),
         };
-
-        let split = line_str.split(' ').collect::<Vec<&str>>();
-
-        let player1: Move = match *split.first().unwrap() {
-            "A" => Move::Rock,
-            "B" => Move::Paper,
-            "C" => Move::Scissors,
+        let line_bytes = line_str.as_bytes();
+        let p: (Move, Move, Status) = match (line_bytes[0] as char, line_bytes[2] as char) {
+            ('A', 'X') => (Move::Rock, Move::Rock, Status::Lose),
+            ('A', 'Y') => (Move::Rock, Move::Paper, Status::Draw),
+            ('A', 'Z') => (Move::Rock, Move::Scissors, Status::Win),
+            ('B', 'X') => (Move::Paper, Move::Rock, Status::Lose),
+            ('B', 'Y') => (Move::Paper, Move::Paper, Status::Draw),
+            ('B', 'Z') => (Move::Paper, Move::Scissors, Status::Win),
+            ('C', 'X') => (Move::Scissors, Move::Rock, Status::Lose),
+            ('C', 'Y') => (Move::Scissors, Move::Paper, Status::Draw),
+            ('C', 'Z') => (Move::Scissors, Move::Scissors, Status::Win),
             _ => panic!("Invalid move"),
         };
-
-        let player2: (Move, Status) = match *split.last().unwrap() {
-            "X" => (Move::Rock, Status::Lose),
-            "Y" => (Move::Paper, Status:: Draw),
-            "Z" => (Move::Scissors, Status:: Win),
-            _ => panic!("Invalid move"),
-        };
-
-        input.push(Play { player1, player2: player2.0, status: player2.1 });
+        input.push(Play { player1: p.0, player2: p.1, status: p.2 });
     }
     input
 }
 
 #[inline]
 pub fn solve_part1(program: &[Play]) -> u32 {
-    program.iter().map(|f| f.get_score()).collect::<Vec<u32>>().iter().sum()
+    program.iter().map(Play::get_score).collect::<Vec<u32>>().iter().sum()
 }
 
 #[inline]
 pub fn solve_part2(program: &[Play]) -> u32 {
-    program.iter().map(|f| f.get_real_score()).collect::<Vec<u32>>().iter().sum()
+    program.iter().map(Play::get_real_score).collect::<Vec<u32>>().iter().sum()
 }
