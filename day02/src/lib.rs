@@ -93,18 +93,10 @@ pub fn read_input(filename: &str) -> Vec<Play> {
 
 #[inline]
 pub fn solve_part1(program: &[Play]) -> u32 {
-    let mut result: u32 = 0;
-    for game in program {
-        result += game.get_score();
-    }
-    result
+    program.iter().map(|f| f.get_score()).collect::<Vec<u32>>().iter().sum()
 }
 
 #[inline]
 pub fn solve_part2(program: &[Play]) -> u32 {
-    let mut result: u32 = 0;
-    for game in program {
-        result += game.get_real_score();
-    }
-    result
+    program.iter().map(|f| f.get_real_score()).collect::<Vec<u32>>().iter().sum()
 }
