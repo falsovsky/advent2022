@@ -1,6 +1,4 @@
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
+use std::fs;
 use std::cmp::Ordering;
 
 
@@ -36,6 +34,7 @@ pub enum Status {
     Win = 6,
 }
 
+#[derive(Clone, Copy)]
 pub struct Play {
     player1: Move,
     player2: Move,
@@ -52,63 +51,58 @@ impl Play {
     }
 
     pub fn get_real_score(&self) -> u32 {
-        (match self.status {
-            Status::Draw => self.player1,
-            Status::Lose => {
-                match self.player1 {
-                    Move::Paper => Move::Rock,
-                    Move::Rock => Move::Scissors,
-                    Move::Scissors => Move::Paper
-                }
-            },
-            Status::Win => {
-                match self.player1 {
-                    Move::Rock => Move::Paper,
-                    Move::Paper => Move::Scissors,
-                    Move::Scissors => Move::Rock
-                }
-            }
-        }) as u32 + self.status as u32
+        match (self.status, self.player1) {
+            (Status::Draw, player1) => player1 as u32 + self.status as u32,
+            (Status::Lose, Move::Paper) => Move::Rock as u32 + self.status as u32,
+            (Status::Lose, Move::Rock) => Move::Scissors as u32 + self.status as u32,
+            (Status::Lose, Move::Scissors) => Move::Paper as u32 + self.status as u32,
+            (Status::Win, Move::Rock) => Move::Paper as u32 + self.status as u32,
+            (Status::Win, Move::Paper) => Move::Scissors as u32 + self.status as u32,
+            (Status::Win, Move::Scissors) => Move::Rock as u32 + self.status as u32,
+        }
     }
 }
 
 #[inline]
 pub fn read_input(filename: &str) -> Vec<Play> {
-    let fp = match File::open(filename) {
-        Ok(file) => file,
-        Err(error) => panic!("{} - {}", filename, error),
-    };
-    let buffer = BufReader::new(&fp);
-    let mut input: Vec<Play> = Vec::new();
-    for line in buffer.lines() {
-        let line_str = match line {
-            Ok(value) => value,
-            Err(error) => panic!("Could not read anything - {}", error),
-        };
-        let line_bytes = line_str.as_bytes();
-        let p: (Move, Move, Status) = match (line_bytes[0] as char, line_bytes[2] as char) {
-            ('A', 'X') => (Move::Rock, Move::Rock, Status::Lose),
-            ('A', 'Y') => (Move::Rock, Move::Paper, Status::Draw),
-            ('A', 'Z') => (Move::Rock, Move::Scissors, Status::Win),
-            ('B', 'X') => (Move::Paper, Move::Rock, Status::Lose),
-            ('B', 'Y') => (Move::Paper, Move::Paper, Status::Draw),
-            ('B', 'Z') => (Move::Paper, Move::Scissors, Status::Win),
-            ('C', 'X') => (Move::Scissors, Move::Rock, Status::Lose),
-            ('C', 'Y') => (Move::Scissors, Move::Paper, Status::Draw),
-            ('C', 'Z') => (Move::Scissors, Move::Scissors, Status::Win),
-            _ => panic!("Invalid move"),
-        };
-        input.push(Play { player1: p.0, player2: p.1, status: p.2 });
-    }
-    input
+    let buffer = fs::read_to_string(filename).unwrap();
+    let mut plays: Vec<Play> = Vec::new();
+    const PLAY_MAP: &[((char, char), Play)] = &[
+        (('A', 'X'), Play { player1: Move::Rock, player2: Move::Rock, status: Status::Lose }),
+        (('A', 'Y'), Play { player1: Move::Rock, player2: Move::Paper, status: Status::Draw }),
+        (('A', 'Z'), Play { player1: Move::Rock, player2: Move::Scissors, status: Status::Win }),
+        (('B', 'X'), Play { player1: Move::Paper, player2: Move::Rock, status: Status::Lose }),
+        (('B', 'Y'), Play { player1: Move::Paper, player2: Move::Paper, status: Status::Draw }),
+        (('B', 'Z'), Play { player1: Move::Paper, player2: Move::Scissors, status: Status::Win }),
+        (('C', 'X'), Play { player1: Move::Scissors, player2: Move::Rock, status: Status::Lose }),
+        (('C', 'Y'), Play { player1: Move::Scissors, player2: Move::Paper, status: Status::Draw }),
+        (('C', 'Z'), Play { player1: Move::Scissors, player2: Move::Scissors, status: Status::Win }),
+    ];
+    buffer.lines().for_each(|line| {
+        let line_bytes = line.as_bytes();
+        let (player1, player2) = (line_bytes[0] as char, line_bytes[2] as char);
+        let play = PLAY_MAP
+            .iter()
+            .find(|((p1, p2), _)| p1 == &player1 && p2 == &player2)
+            .map(|(_, play)| play)
+            .unwrap();
+        plays.push(*play);
+    });
+    plays
 }
 
 #[inline]
 pub fn solve_part1(program: &[Play]) -> u32 {
-    program.iter().map(Play::get_score).collect::<Vec<u32>>().iter().sum()
+    program
+        .iter()
+        .map(Play::get_score)
+        .sum()
 }
 
 #[inline]
 pub fn solve_part2(program: &[Play]) -> u32 {
-    program.iter().map(Play::get_real_score).collect::<Vec<u32>>().iter().sum()
+    program
+        .iter()
+        .map(Play::get_real_score)
+        .sum()
 }
