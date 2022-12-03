@@ -1,22 +1,15 @@
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
+use std::fs;
+use std::str::FromStr;
+
 
 #[inline]
 pub fn read_input(filename: &str) -> Vec<u32> {
-    let fp = match File::open(filename) {
-        Ok(file) => file,
-        Err(error) => panic!("{} - {}", filename, error),
-    };
-    let buffer = BufReader::new(&fp);
+    let buffer = fs::read_to_string(filename).unwrap();
     let mut input: Vec<u32> = Vec::new();
     let mut total: u32 = 0;
-    for line in buffer.lines() {
-        let line_str = match line {
-            Ok(value) => value,
-            Err(error) => panic!("Could not read anything - {}", error),
-        };
-        if let Ok(value) = line_str.parse::<u32>() {
+    buffer.lines().for_each(|line| {
+        if !line.is_empty() {
+            let value = u32::from_str(line).unwrap();
             if let Some(sum) = total.checked_add(value) {
                 total = sum;
             }
@@ -24,21 +17,17 @@ pub fn read_input(filename: &str) -> Vec<u32> {
             input.push(total);
             total = 0;
         };
-    }
+    });
     if total > 0 {
         input.push(total);
     }
-    input.sort();
+    input.sort_unstable();
     input
 }
 
 #[inline]
 pub fn solve_part1(program: &[u32]) -> u32 {
-    let mut result: u32 = 0;
-    if let Some(value) = program.last() {
-        result = *value;
-    }
-    result
+    *program.last().unwrap()
 }
 
 #[inline]
