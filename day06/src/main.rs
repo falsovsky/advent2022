@@ -41,6 +41,6 @@ mod day06 {
         use crate::*;
         let root = env::current_dir().unwrap().display().to_string();
         let input = read_input(format!("{}{}", root, "/../input/sample06.txt").as_str());
-        assert_eq!(solve_part2(&input), 0);
+        assert_eq!(solve_part2(&input), 14);
     }
 }
